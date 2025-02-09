@@ -74,7 +74,7 @@ fun ExGalleryMetadata.copyTo(manga: SManga) {
 
     val tagsDesc = buildTagsDescription(this)
 
-    manga.description = listOf(titleDesc.toString(), detailsDesc.toString(), tagsDesc.toString())
+    manga.description = listOf(titleDesc.toString(), detailsDesc.toString())
         .filter(String::isNotBlank)
         .joinToString(separator = "\n")
 }
