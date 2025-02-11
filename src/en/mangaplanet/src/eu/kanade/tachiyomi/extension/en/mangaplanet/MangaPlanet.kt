@@ -1,14 +1,9 @@
 package eu.kanade.tachiyomi.extension.en.mangaplanet
 
-import android.app.Application
-import android.content.SharedPreferences
-import androidx.preference.CheckBoxPreference
-import androidx.preference.PreferenceScreen
 import eu.kanade.tachiyomi.lib.cookieinterceptor.CookieInterceptor
 import eu.kanade.tachiyomi.lib.speedbinb.SpeedBinbInterceptor
 import eu.kanade.tachiyomi.lib.speedbinb.SpeedBinbReader
 import eu.kanade.tachiyomi.network.GET
-import eu.kanade.tachiyomi.source.ConfigurableSource
 import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.model.SChapter
@@ -26,7 +21,7 @@ import uy.kohesive.injekt.api.get
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-class MangaPlanet : ConfigurableSource, ParsedHttpSource() {
+class MangaPlanet : ParsedHttpSource() {
 
     override val name = "Manga Planet"
 
@@ -38,10 +33,6 @@ class MangaPlanet : ConfigurableSource, ParsedHttpSource() {
 
     // No need to be lazy if you're going to use it immediately below.
     private val json = Injekt.get<Json>()
-
-    private val preferences: SharedPreferences by lazy {
-        Injekt.get<Application>().getSharedPreferences("source_$id", 0x0000)
-    }
 
     override val client = network.client.newBuilder()
         .addInterceptor(SpeedBinbInterceptor(json))
@@ -106,34 +97,20 @@ class MangaPlanet : ConfigurableSource, ParsedHttpSource() {
     override fun searchMangaNextPageSelector() = popularMangaNextPageSelector()
 
     override fun mangaDetailsParse(document: Document): SManga {
-        val alternativeTitlesElement = document.selectFirst("h3#manga_title + p")
-
-        // Extract Japanese Title
-        val japaneseTitleRegex = ",\\s*(.*)".toRegex()
-        val japaneseTitleMatch = japaneseTitleRegex.find(alternativeTitlesElement?.text() ?: "")
-        val japaneseTitle = japaneseTitleMatch?.groupValues?.get(1)?.trim() ?: ""
+        val alternativeTitles = document.selectFirst("h3#manga_title + p")!!
+            .textNodes()
+            .filterNot { it.text().isBlank() }
+            .joinToString("\n") { it.text() }
 
         return SManga.create().apply {
-            title = if (preferences.getBoolean("useJapaneseTitles", false)) {
-                japaneseTitle
-            } else {
-                document.selectFirst("h3#manga_title")!!.text()
-            }
+            title = document.selectFirst("h3#manga_title")!!.text()
             author = document.select("h3:has(.fa-pen-nib) a").joinToString { it.text() }
-
             description = buildString {
-                document.selectFirst("h3#manga_title ~ p:eq(2)")?.text()?.let {
-                    append(it)
-                    appendLine()
-                }
-
-                if (alternativeTitlesElement != null && alternativeTitlesElement.hasText()) {
-                    appendLine()
-                    appendLine("Alternative Titles:")
-                    append(alternativeTitlesElement.text().split(',').joinToString("\n") { "• ${it.trim()}" })
-                }
+                append("Alternative Titles: ")
+                appendLine(alternativeTitles)
+                appendLine()
+                appendLine(document.selectFirst("h3#manga_title ~ p:eq(2)")!!.text())
             }
-
             genre = buildList {
                 document.select("h3:has(.fa-layer-group) a")
                     .map { it.text() }
@@ -213,15 +190,6 @@ class MangaPlanet : ConfigurableSource, ParsedHttpSource() {
         FormatFilter(),
         RatingFilter(),
     )
-
-    override fun setupPreferenceScreen(screen: PreferenceScreen) {
-        val useJapaneseTitlesPref = CheckBoxPreference(screen.context).apply {
-            key = "useJapaneseTitles"
-            title = "Use Japanese Titles"
-            summary = "Display Japanese titles instead of English."
-        }
-        screen.addPreference(useJapaneseTitlesPref)
-    }
-
-    private val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH)
 }
+
+private val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH)
