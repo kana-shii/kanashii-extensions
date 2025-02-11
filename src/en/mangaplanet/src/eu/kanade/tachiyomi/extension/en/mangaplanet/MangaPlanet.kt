@@ -220,6 +220,7 @@ class MangaPlanet : ConfigurableSource, ParsedHttpSource() {
             title = "Use Japanese Titles"
             summary = "Display Japanese titles instead of English."
         }
+        screen.addPreference(useJapaneseTitlesPref)
     }
 
     private val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH)
