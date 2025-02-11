@@ -101,13 +101,13 @@ class MangaPlanet : ConfigurableSource, ParsedHttpSource() {
         val alternativeTitlesElement = document.selectFirst("h3#manga_title + p")
 
         // Extract Japanese Title
-        val japaneseTitleRegex = ",\\s*(.*)".toRegex() 
+        val japaneseTitleRegex = ",\\s*(.*)".toRegex()
         val japaneseTitleMatch = japaneseTitleRegex.find(alternativeTitlesElement?.text() ?: "")
-        val japaneseTitle = japaneseTitleMatch?.groupValues?.get(1)?.trim() ?: "" 
+        val japaneseTitle = japaneseTitleMatch?.groupValues?.get(1)?.trim() ?: ""
 
         return SManga.create().apply {
             title = if (preferences.getBoolean("useJapaneseTitles", false)) {
-                japaneseTitle 
+                japaneseTitle
             } else {
                 document.selectFirst("h3#manga_title")!!.text()
             }
@@ -212,5 +212,7 @@ class MangaPlanet : ConfigurableSource, ParsedHttpSource() {
             key = "useJapaneseTitles"
             title = "Use Japanese Titles"
             summary = "Display Japanese titles instead of English."
+        }
+    }
 
 private val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH)
