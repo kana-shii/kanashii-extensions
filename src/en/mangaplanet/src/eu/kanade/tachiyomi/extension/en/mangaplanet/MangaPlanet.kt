@@ -8,6 +8,7 @@ import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
+import eu.kanade.tachiyomi.source.online.ConfigurableSource
 import eu.kanade.tachiyomi.source.online.ParsedHttpSource
 import eu.kanade.tachiyomi.util.asJsoup
 import kotlinx.serialization.json.Json
@@ -21,7 +22,7 @@ import uy.kohesive.injekt.api.get
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-class MangaPlanet : ParsedHttpSource() {
+class MangaPlanet : ConfigurableSource, ParsedHttpSource() {
 
     override val name = "Manga Planet"
 
@@ -97,20 +98,34 @@ class MangaPlanet : ParsedHttpSource() {
     override fun searchMangaNextPageSelector() = popularMangaNextPageSelector()
 
     override fun mangaDetailsParse(document: Document): SManga {
-        val alternativeTitles = document.selectFirst("h3#manga_title + p")!!
-            .textNodes()
-            .filterNot { it.text().isBlank() }
-            .joinToString { it.text() }
+        val alternativeTitlesElement = document.selectFirst("h3#manga_title + p")
+
+        // Extract Japanese Title
+        val japaneseTitleRegex = ",\\s*(.*)".toRegex() 
+        val japaneseTitleMatch = japaneseTitleRegex.find(alternativeTitlesElement?.text() ?: "")
+        val japaneseTitle = japaneseTitleMatch?.groupValues?.get(1)?.trim() ?: "" 
 
         return SManga.create().apply {
-            title = document.selectFirst("h3#manga_title")!!.text()
-            author = document.select("h3:has(.fa-pen-nib) a").joinToString { it.text() }
-            description = buildString {
-                append("Alternative Titles: ")
-                appendLine(alternativeTitles)
-                appendLine()
-                appendLine(document.selectFirst("h3#manga_title ~ p:eq(2)")!!.text())
+            title = if (preferences.getBoolean("useJapaneseTitles", false)) {
+                japaneseTitle 
+            } else {
+                document.selectFirst("h3#manga_title")!!.text()
             }
+            author = document.select("h3:has(.fa-pen-nib) a").joinToString { it.text() }
+
+            description = buildString {
+                document.selectFirst("h3#manga_title ~ p:eq(2)")?.text()?.let {
+                    append(it)
+                    appendLine()
+                }
+
+                if (alternativeTitlesElement != null && alternativeTitlesElement.hasText()) {
+                    appendLine()
+                    appendLine("Alternative Titles:")
+                    append(alternativeTitlesElement.text().split(',').joinToString("\n") { "• ${it.trim()}" })
+                }
+            }
+
             genre = buildList {
                 document.select("h3:has(.fa-layer-group) a")
                     .map { it.text() }
@@ -124,7 +139,7 @@ class MangaPlanet : ParsedHttpSource() {
                 document.selectFirst("span:has(.fa-book-spells, .fa-book)")?.let { add(it.text()) }
                 document.selectFirst("span:has(.fa-user-friends)")?.let { add(it.text()) }
             }
-                .joinToString()
+            .joinToString()
             status = when {
                 document.selectFirst(".fa-flag-alt") != null -> SManga.COMPLETED
                 document.selectFirst(".fa-arrow-right") != null -> SManga.ONGOING
@@ -191,5 +206,11 @@ class MangaPlanet : ParsedHttpSource() {
         RatingFilter(),
     )
 }
+
+    override fun setupPreferenceScreen(screen: PreferenceScreen) {
+        val useJapaneseTitlesPref = CheckBoxPreference(screen.context).apply {
+            key = "useJapaneseTitles"
+            title = "Use Japanese Titles"
+            summary = "Display Japanese titles instead of English."
 
 private val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH)
