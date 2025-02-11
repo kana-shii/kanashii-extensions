@@ -112,22 +112,27 @@ class MangaPlanet : ConfigurableSource, ParsedHttpSource() {
             ?.map { it.text().trim() } ?: emptyList()
 
         val useJapaneseTitles = preferences.getBoolean("useJapaneseTitles", false)
-        val japaneseTitle = alternativeTitles.getOrNull(0) ?: ""
-        val englishTitle = alternativeTitles.getOrNull(1) ?: ""
-        val originalTitle = alternativeTitles.getOrNull(alternativeTitles.size - 1) ?: ""
+        val japaneseTitle = alternativeTitles.getOrNull(1) ?: ""
+        val englishTitle = document.selectFirst("h3#manga_title")!!.text()
+        val originalTitle = alternativeTitles.getOrNull(0) ?: ""
 
         return SManga.create().apply {
             title = if (useJapaneseTitles && japaneseTitle.isNotEmpty()) {
-                englishTitle
+                japaneseTitle
             } else {
                 document.selectFirst("h3#manga_title")!!.text()
             }
             author = document.select("h3:has(.fa-pen-nib) a").joinToString { it.text() }
 
             description = buildString {
+                val altTitles = if (useJapaneseTitles) {
+                    listOfNotNull(originalTitle, englishTitle)
+                } else {
+                    alternativeTitles
+                }
                 append("Alternative Titles: ")
-                if (alternativeTitles.isNotEmpty()) {
-                    appendLine(alternativeTitles.joinToString("\n"))
+                if (altTitles.isNotEmpty()) {
+                    appendLine(altTitles.joinToString("\n"))
                 }
                 appendLine()
                 document.selectFirst("h3#manga_title ~ p:eq(2)")?.text()?.let {
