@@ -22,6 +22,9 @@ import org.jsoup.nodes.Element
 import rx.Observable
 import java.text.SimpleDateFormat
 import java.util.Locale
+import kotlin.collections.reverse
+import kotlin.text.contains
+import kotlin.text.toIntOrNull
 
 open class MyReadingManga(override val lang: String, private val siteLang: String, private val latestLang: String) : ParsedHttpSource() {
 
@@ -183,32 +186,87 @@ open class MyReadingManga(override val lang: String, private val siteLang: Strin
 
     override fun mangaDetailsParse(document: Document) = throw UnsupportedOperationException()
 
-    // Start Chapter Get
     override fun chapterListSelector() = ".entry-pagination a"
 
     @SuppressLint("DefaultLocale")
     override fun chapterListParse(response: Response): List<SChapter> {
         val document = response.asJsoup()
         val chapters = mutableListOf<SChapter>()
-
-        val date = parseDate(document.select(".entry-time").text())
         val mangaUrl = document.baseUri()
-        val chfirstname = document.select(".chapter-class a[href*=$mangaUrl]").first()?.text()?.ifEmpty { "Ch. 1" }?.replaceFirstChar { it.titlecase() }
-            ?: "Ch. 1"
-        // create first chapter since its on main manga page
-        chapters.add(createChapter("1", document.baseUri(), date, chfirstname))
-        // see if there are multiple chapters or not
-        document.select(chapterListSelector()).let { it ->
-            it.forEach {
-                if (!it.text().contains("Next »", true)) {
-                    val pageNumber = it.text()
-                    val chname = document.select(".chapter-class a[href$=/$pageNumber/]").text().ifEmpty { "Ch. $pageNumber" }?.replaceFirstChar { it.titlecase() }
-                        ?: "Ch. $pageNumber"
-                    chapters.add(createChapter(it.text(), document.baseUri(), date, chname))
+        val paginationLinks = document.select(chapterListSelector())
+        val pageNumbers = mutableListOf<Int>()
+
+        // Extract chapter information from the first page
+        val firstPageChapters = parseChapterPage(document)
+        if (firstPageChapters.isNotEmpty()) {
+            chapters.addAll(firstPageChapters)
+        } else {
+            val date = parseDate(document.select(".entry-time").text())
+            val chfirstname = document.select(".chapter-class a[href*=$mangaUrl]").first()?.text()?.ifEmpty { "Ch. 1" }?.replaceFirstChar { it.titlecase() }
+                ?: "Ch. 1"
+            chapters.add(createChapter("1", document.baseUri(), date, chfirstname))
+        }
+
+        // Find the last page number
+        val lastPageLink = paginationLinks.lastOrNull { !it.text().contains("Next »", true) && !it.text().contains("« Prev", true) && it.text().toIntOrNull() != null }
+        var lastPageNumber = lastPageLink?.text()?.toIntOrNull() ?: 1
+
+        // Iterate through pagination links to find all page numbers
+        paginationLinks.forEach {
+            val pageText = it.text()
+            if (!pageText.contains("Next »", true) && !pageText.contains("« Prev", true)) {
+                if (pageText == "…") {
+                    // Handle ellipsis
+                    val prevPage = pageNumbers.lastOrNull() ?: 1
+                    val nextPage = paginationLinks.indexOf(it).let { index ->
+                        paginationLinks.subList(index + 1, paginationLinks.size).firstOrNull { !it.text().contains("Next »", true) && !it.text().contains("« Prev", true) && it.text() != "…" }?.text()?.toIntOrNull() ?: prevPage + 1
+                    }
+                    if (nextPage != null) {
+                        for (i in prevPage + 1 until nextPage) {
+                            pageNumbers.add(i)
+                        }
+                    }
+                } else {
+                    pageNumbers.add(pageText.toInt())
                 }
             }
         }
+        if (pageNumbers.isNotEmpty()) {
+            lastPageNumber = pageNumbers.last()
+        }
+
+        // Fetch and parse additional pages
+        for (page in 2..lastPageNumber) {
+            val pageUrl = "$mangaUrl/$page"
+            val pageResponse = client.newCall(GET(pageUrl, headers)).execute()
+            if (pageResponse.isSuccessful) {
+                val pageDocument = pageResponse.asJsoup()
+                val additionalChapters = parseChapterPage(pageDocument)
+                if (additionalChapters.isEmpty()) {
+                    val date = parseDate(document.select(".entry-time").text())
+                    val chname = "Ch. $page"
+                    chapters.add(createChapter(page.toString(), document.baseUri(), date, chname))
+                } else {
+                    chapters.addAll(additionalChapters)
+                }
+            }
+        }
+
         chapters.reverse()
+        return chapters
+    }
+
+    private fun parseChapterPage(document: Document): List<SChapter> {
+        val chapters = mutableListOf<SChapter>()
+        val date = parseDate(document.select(".entry-time").text())
+        val mangaUrl = document.baseUri()
+        // see if there are multiple chapters or not
+        document.select(".chapter-class a[href*=$mangaUrl]").forEach {
+            val pageNumber = it.attr("href").substringAfterLast("/").substringBefore("/").ifEmpty { "1" }
+            val chname = it.text().ifEmpty { "Ch. $pageNumber" }?.replaceFirstChar { it.titlecase() }
+                ?: "Ch. $pageNumber"
+            chapters.add(createChapter(pageNumber, document.baseUri(), date, chname))
+        }
         return chapters
     }
 
