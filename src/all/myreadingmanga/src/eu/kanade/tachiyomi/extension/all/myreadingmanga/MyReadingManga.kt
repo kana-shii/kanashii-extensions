@@ -236,6 +236,7 @@ open class MyReadingManga(override val lang: String, private val siteLang: Strin
         }
 
         // Fetch and parse additional pages
+        var hasHiddenChapters = false
         for (page in 2..lastPageNumber) {
             val pageUrl = "$mangaUrl/$page"
             val pageResponse = client.newCall(GET(pageUrl, headers)).execute()
@@ -246,10 +247,12 @@ open class MyReadingManga(override val lang: String, private val siteLang: Strin
                     val date = parseDate(document.select(".entry-time").text())
                     val chname = "Ch. $page"
                     chapters.add(createChapter(page.toString(), document.baseUri(), date, chname))
+                    hasHiddenChapters = true
                 } else {
                     chapters.addAll(additionalChapters)
                 }
             }
+            if (!hasHiddenChapters && page > 4 && chapters.isNotEmpty()) break
         }
 
         chapters.reverse()
