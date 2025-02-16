@@ -1,9 +1,14 @@
 package eu.kanade.tachiyomi.extension.en.mangaplanet
 
+import android.app.Application
+import android.content.SharedPreferences
+import androidx.preference.CheckBoxPreference
+import androidx.preference.PreferenceScreen
 import eu.kanade.tachiyomi.lib.cookieinterceptor.CookieInterceptor
 import eu.kanade.tachiyomi.lib.speedbinb.SpeedBinbInterceptor
 import eu.kanade.tachiyomi.lib.speedbinb.SpeedBinbReader
 import eu.kanade.tachiyomi.network.GET
+import eu.kanade.tachiyomi.source.ConfigurableSource
 import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.model.SChapter
@@ -21,7 +26,7 @@ import uy.kohesive.injekt.api.get
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-class MangaPlanet : ParsedHttpSource() {
+class MangaPlanet : ConfigurableSource, ParsedHttpSource() {
 
     override val name = "Manga Planet"
 
@@ -34,6 +39,10 @@ class MangaPlanet : ParsedHttpSource() {
     // No need to be lazy if you're going to use it immediately below.
     private val json = Injekt.get<Json>()
 
+    private val preferences: SharedPreferences by lazy {
+        Injekt.get<Application>().getSharedPreferences("source_$id", 0x0000)
+    }
+
     override val client = network.client.newBuilder()
         .addInterceptor(SpeedBinbInterceptor(json))
         .addNetworkInterceptor(CookieInterceptor(baseUrl.toHttpUrl().host, "mpaconf" to "18"))
@@ -42,7 +51,8 @@ class MangaPlanet : ParsedHttpSource() {
     override fun headersBuilder() = super.headersBuilder()
         .add("Referer", "$baseUrl/")
 
-    override fun popularMangaRequest(page: Int) = GET("$baseUrl/browse/title?ttlpage=$page", headers)
+    override fun popularMangaRequest(page: Int) =
+        GET("$baseUrl/browse/title?ttlpage=$page", headers)
 
     override fun popularMangaSelector() = ".book-list"
 
@@ -97,20 +107,39 @@ class MangaPlanet : ParsedHttpSource() {
     override fun searchMangaNextPageSelector() = popularMangaNextPageSelector()
 
     override fun mangaDetailsParse(document: Document): SManga {
-        val alternativeTitles = document.selectFirst("h3#manga_title + p")!!
-            .textNodes()
-            .filterNot { it.text().isBlank() }
-            .joinToString { it.text() }
+        val alternativeTitlesElement = document.selectFirst("h3#manga_title + p")
+        val alternativeTitles = alternativeTitlesElement?.textNodes()?.filterNot { it.isBlank() }
+            ?.map { it.text().trim() } ?: emptyList()
+
+        val useJapaneseTitles = preferences.getBoolean("useJapaneseTitles", false)
+        val japaneseTitle = alternativeTitles.getOrNull(1) ?: ""
+        val englishTitle = document.selectFirst("h3#manga_title")!!.text()
+        val originalTitle = alternativeTitles.getOrNull(0) ?: ""
 
         return SManga.create().apply {
-            title = document.selectFirst("h3#manga_title")!!.text()
-            author = document.select("h3:has(.fa-pen-nib) a").joinToString { it.text() }
-            description = buildString {
-                append("Alternative Titles: ")
-                appendLine(alternativeTitles)
-                appendLine()
-                appendLine(document.selectFirst("h3#manga_title ~ p:eq(2)")!!.text())
+            title = if (useJapaneseTitles && japaneseTitle.isNotEmpty()) {
+                japaneseTitle
+            } else {
+                document.selectFirst("h3#manga_title")!!.text()
             }
+            author = document.select("h3:has(.fa-pen-nib) a").joinToString { it.text() }
+
+            description = buildString {
+                val altTitles = if (useJapaneseTitles) {
+                    listOfNotNull(originalTitle, englishTitle)
+                } else {
+                    alternativeTitles
+                }
+                if (altTitles.isNotEmpty()) {
+                    append("Alternative Titles:\n")
+                    altTitles.forEach { append("• $it\n") }
+                    append("\n")
+                }
+                document.selectFirst("h3#manga_title ~ p:eq(2)")?.text()?.let {
+                    appendLine(it)
+                }
+            }
+
             genre = buildList {
                 document.select("h3:has(.fa-layer-group) a")
                     .map { it.text() }
@@ -123,8 +152,16 @@ class MangaPlanet : ParsedHttpSource() {
                     .let { addAll(it) }
                 document.selectFirst("span:has(.fa-book-spells, .fa-book)")?.let { add(it.text()) }
                 document.selectFirst("span:has(.fa-user-friends)")?.let { add(it.text()) }
-            }
-                .joinToString()
+
+                document.select("span.badge").forEach { badge ->
+                    when {
+                        badge.select("i.fa-child").isNotEmpty() -> add("Free Preview")
+                        badge.select("i.fa-coins").isNotEmpty() -> add("Buy or Rental")
+                        badge.select("i.fa-ticket").isNotEmpty() -> add("Manga Planet Pass")
+                    }
+                }
+            }.joinToString()
+
             status = when {
                 document.selectFirst(".fa-flag-alt") != null -> SManga.COMPLETED
                 document.selectFirst(".fa-arrow-right") != null -> SManga.ONGOING
@@ -190,6 +227,15 @@ class MangaPlanet : ParsedHttpSource() {
         FormatFilter(),
         RatingFilter(),
     )
-}
 
-private val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH)
+    override fun setupPreferenceScreen(screen: PreferenceScreen) {
+        val useJapaneseTitlesPref = CheckBoxPreference(screen.context).apply {
+            key = "useJapaneseTitles"
+            title = "Use Japanese Titles"
+            summary = "Display Japanese titles instead of English."
+        }
+        screen.addPreference(useJapaneseTitlesPref)
+    }
+
+    private val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH)
+}
