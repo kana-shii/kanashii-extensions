@@ -140,7 +140,7 @@ class MangaPlanet : ConfigurableSource, ParsedHttpSource() {
                 document.selectFirst("span:has(.fa-user-friends)")?.text()?.let { add(it) }
 
                 // Target the specific tags on the manga details page
-                document.select("#page_detail > div > div.card:eq(1) > div > div:eq(1) > p > span.badge").forEach { badge ->
+                document.select(".book-detail > p > span.badge").forEach { badge ->
                     when {
                         badge.select("i.fa-child").isNotEmpty() -> add("Free Preview")
                         badge.select("i.fa-coins").isNotEmpty() -> add("Buy or Rental")
