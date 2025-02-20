@@ -140,11 +140,17 @@ class MangaPlanet : ConfigurableSource, ParsedHttpSource() {
                 document.selectFirst("span:has(.fa-user-friends)")?.text()?.let { add(it) }
 
                 // Target the specific tags on the manga details page
-                document.select(".book-detail > p > span.badge").forEach { badge ->
-                    when {
-                        badge.select("i.fa-child").isNotEmpty() -> add("Free Preview")
-                        badge.select("i.fa-coins").isNotEmpty() -> add("Buy or Rental")
-                        badge.select("i.fa-ticket").isNotEmpty() -> add("Manga Planet Pass")
+
+                val bookDetailDiv = document.selectFirst(".book-detail:has(img.img-thumbnail)")
+
+                if (bookDetailDiv != null) {
+                    bookDetailDiv.select("> p").forEach { p ->
+                        val text = p.text()
+                        if (text.contains("Free Preview") || text.contains("Buy or Rental") || text.contains("Manga Planet Pass")) {
+                            if (text.contains("Free Preview")) add("Free Preview")
+                            if (text.contains("Buy or Rental")) add("Buy or Rental")
+                            if (text.contains("Manga Planet Pass")) add("Manga Planet Pass")
+                        }
                     }
                 }
             }.joinToString()
