@@ -29,16 +29,11 @@ import java.util.Locale
 class MangaPlanet : ConfigurableSource, ParsedHttpSource() {
 
     override val name = "Manga Planet"
-
     override val baseUrl = "https://mangaplanet.com"
-
     override val lang = "en"
-
     override val supportsLatest = false
 
-    // No need to be lazy if you're going to use it immediately below.
     private val json = Injekt.get<Json>()
-
     private val preferences: SharedPreferences by lazy {
         Injekt.get<Application>().getSharedPreferences("source_$id", 0x0000)
     }
@@ -72,11 +67,8 @@ class MangaPlanet : ConfigurableSource, ParsedHttpSource() {
     override fun popularMangaNextPageSelector() = "ul.pagination a.page-link[rel=next]"
 
     override fun latestUpdatesRequest(page: Int) = throw UnsupportedOperationException()
-
     override fun latestUpdatesSelector() = throw UnsupportedOperationException()
-
     override fun latestUpdatesFromElement(element: Element) = throw UnsupportedOperationException()
-
     override fun latestUpdatesNextPageSelector() = throw UnsupportedOperationException()
 
     override fun searchMangaRequest(page: Int, query: String, filters: FilterList): Request {
@@ -101,9 +93,7 @@ class MangaPlanet : ConfigurableSource, ParsedHttpSource() {
     }
 
     override fun searchMangaSelector() = popularMangaSelector()
-
     override fun searchMangaFromElement(element: Element) = popularMangaFromElement(element)
-
     override fun searchMangaNextPageSelector() = popularMangaNextPageSelector()
 
     override fun mangaDetailsParse(document: Document): SManga {
@@ -141,19 +131,16 @@ class MangaPlanet : ConfigurableSource, ParsedHttpSource() {
             }
 
             genre = buildList {
-                document.select("h3:has(.fa-layer-group) a")
-                    .map { it.text() }
-                    .let { addAll(it) }
-                document.select(".fa-pepper-hot").size
-                    .takeIf { it > 0 }
-                    ?.let { add("🌶️".repeat(it)) }
-                document.select(".tags-btn button")
-                    .map { it.text() }
-                    .let { addAll(it) }
-                document.selectFirst("span:has(.fa-book-spells, .fa-book)")?.let { add(it.text()) }
-                document.selectFirst("span:has(.fa-user-friends)")?.let { add(it.text()) }
+                addAll(document.select("h3:has(.fa-layer-group) a").map { it.text() })
+                if (document.select(".fa-pepper-hot").isNotEmpty()) {
+                    add("🌶️".repeat(document.select(".fa-pepper-hot").size))
+                }
+                addAll(document.select(".tags-btn button").map { it.text() })
+                document.selectFirst("span:has(.fa-book-spells,.fa-book)")?.text()?.let { add(it) }
+                document.selectFirst("span:has(.fa-user-friends)")?.text()?.let { add(it) }
 
-                document.select("span.badge").forEach { badge ->
+                // Target the specific tags on the manga details page
+                document.select("#page_detail > div > div.card:eq(1) > div > div:eq(1) > p > span.badge").forEach { badge ->
                     when {
                         badge.select("i.fa-child").isNotEmpty() -> add("Free Preview")
                         badge.select("i.fa-coins").isNotEmpty() -> add("Buy or Rental")
@@ -183,7 +170,6 @@ class MangaPlanet : ConfigurableSource, ParsedHttpSource() {
 
         date_upload = try {
             val date = element.selectFirst("p")!!.ownText()
-
             dateFormat.parse(date)!!.time
         } catch (_: Exception) {
             0L
