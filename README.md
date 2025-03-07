@@ -1,4 +1,4 @@
-| Build | Up to date | Support Server | Install to app |
+| Build | Up to date | Install to app |
 |-------|------------|----------------|----------------|
 | [![Build](https://github.com/kana-shii/kanashii-extensions/actions/workflows/build_push.yml/badge.svg)](https://github.com/kana-shii/kanashii-extensions/actions/workflows/build_push.yml) | [![Updated](https://img.shields.io/github/actions/workflow/status/kana-shii/kanashii-extensions/auto_cherry_pick.yml?label=Updated&labelColor=27303D)](https://github.com/kana-shii/kanashii-extensions/actions/workflows/auto_cherry_pick.yml) | [![Install](https://img.shields.io/badge/Click%20here%20to%20install%20repo-gray?style=flat&labelColor=red)](https://intradeus.github.io/http-protocol-redirector/?r=tachiyomi://add-repo?url=https://raw.githubusercontent.com/kana-shii/extensions/repo/index.min.json) |
 
