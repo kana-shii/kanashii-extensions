@@ -223,7 +223,6 @@ class MangaPlanet : ConfigurableSource, ParsedHttpSource() {
         RatingFilter(),
     )
 
-
     override fun setupPreferenceScreen(screen: PreferenceScreen) {
         val useJapaneseTitlesPref = CheckBoxPreference(screen.context).apply {
             key = "useJapaneseTitles"
