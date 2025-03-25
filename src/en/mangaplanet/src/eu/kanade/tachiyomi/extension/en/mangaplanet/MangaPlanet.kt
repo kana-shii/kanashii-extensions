@@ -38,10 +38,6 @@ class MangaPlanet : ConfigurableSource, ParsedHttpSource() {
         Injekt.get<Application>().getSharedPreferences("source_$id", 0x0000)
     }
 
-    private val preferences: SharedPreferences by lazy {
-        Injekt.get<Application>().getSharedPreferences("source_$id", 0x0000)
-    }
-
     override val client = network.cloudflareClient.newBuilder()
         .addInterceptor(SpeedBinbInterceptor(json))
         .addNetworkInterceptor(CookieInterceptor(baseUrl.toHttpUrl().host, "mpaconf" to "18"))
@@ -226,7 +222,7 @@ class MangaPlanet : ConfigurableSource, ParsedHttpSource() {
         FormatFilter(),
         RatingFilter(),
     )
-}
+
 
     override fun setupPreferenceScreen(screen: PreferenceScreen) {
         val useJapaneseTitlesPref = CheckBoxPreference(screen.context).apply {
