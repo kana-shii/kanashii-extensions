@@ -54,15 +54,22 @@ class MangaParkComic(
 
             if (desc.isNullOrEmpty()) {
                 if (!names.isNullOrEmpty()) {
-                    append("Alternative Names:\n", names)
+                    append("\n\n----\n#### **Extra Info**\n${it.wholeText()}", names)
                 }
             } else {
                 append(desc)
                 if (!names.isNullOrEmpty()) {
-                    append("\n\nAlternative Names:\n", names)
+                    append("\n\n----\n#### **Alternative Titles**\n", names)
+
+            val matches = titleRegex.findAll(originalTitle)
+                .toList()
+
+            if (matches.isNotEmpty()) {
+                matches.forEach { match ->
+                    append("\n\nThis entry is a `${match.value}` version.")
                 }
             }
-        }
+        }.trim()
         genre = genres?.joinToString { it.replace("_", " ").toCamelCase() }
         status = when (originalStatus) {
             "ongoing" -> SManga.ONGOING
