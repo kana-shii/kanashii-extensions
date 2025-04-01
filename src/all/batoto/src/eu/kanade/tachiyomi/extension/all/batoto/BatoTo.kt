@@ -370,11 +370,11 @@ open class BatoTo(
                 append("\n\n${it.text()}")
             }
             infoElement.selectFirst("h5:containsOwn(Extra Info:) + div")?.also {
-                append("\n\nExtra Info:\n${it.wholeText()}")
+                append("----#### **Extra Info:**${it.wholeText()}")
             }
             document.selectFirst("div.pb-2.alias-set.line-b-f")?.takeIf { it.hasText() }?.also {
-                append("\n\nAlternative Titles:\n")
-                append(it.text().split('/').joinToString("\n") { "• ${it.trim()}" })
+                append("\n\n----\n#### **Alternative Titles:**\n")
+                append(it.text().split('/').joinToString("\n- ", prefix = "- "))
             }
 
             val matches = titleRegex.findAll(originalTitle)
@@ -382,7 +382,7 @@ open class BatoTo(
 
             if (matches.isNotEmpty()) {
                 matches.forEach { match ->
-                    append("\n\nThis entry is a ${match.value} version.")
+                    append("\n\nThis entry is a `${match.value}` version.")
                 }
             }
         }.trim()
