@@ -1,5 +1,5 @@
 ext {
-    kmkVersionCode = 2
+    kmkVersionCode = 3
     extName = 'MangaPark'
     extClass = '.MangaParkFactory'
     extVersionCode = 21
