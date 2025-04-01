@@ -370,10 +370,10 @@ open class BatoTo(
                 append("\n\n${it.text()}")
             }
             infoElement.selectFirst("h5:containsOwn(Extra Info:) + div")?.also {
-                append("\n\n----\n#### **Extra Info:**\n${it.wholeText()}")
+                append("\n\n----\n#### **Extra Info**\n${it.wholeText()}")
             }
             document.selectFirst("div.pb-2.alias-set.line-b-f")?.takeIf { it.hasText() }?.also {
-                append("\n\n----\n#### **Alternative Titles:**\n")
+                append("\n\n----\n#### **Alternative Titles**\n")
                 append(it.text().split('/').joinToString("\n- ", prefix = "- "))
             }
 
