@@ -180,12 +180,13 @@ class MangaPark(
         manga.description = buildString {
             append(manga.description)
 
-            val removedParts = titleRegex.findAll(manga.title)
+            val matches = titleRegex.findAll(manga.title)
+                .map { it.value }
                 .toList()
 
-            if (removedParts.isNotEmpty()) {
-                removedParts.forEach { removedPart ->
-                    append("\n\nThis entry is a $removedPart version.")
+            if (matches.isNotEmpty()) {
+                matches.forEach { match ->
+                    append("\n\nThis entry is a `$match` version.")
                 }
             }
         }
