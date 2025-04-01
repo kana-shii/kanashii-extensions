@@ -172,25 +172,26 @@ class MangaPark(
         val isRemoveTitleVersion = preference.getBoolean(REMOVE_TITLE_VERSION_PREF, true)
         val customRemoveTitle = preference.getString(REMOVE_TITLE_CUSTOM_PREF, "") ?: ""
 
+        val titleWithPossibleVersion = manga.title
+
         manga.title = manga.title
             .replace(Regex(customRemoveTitle), "")
             .replace(if (isRemoveTitleVersion) titleRegex else Regex(""), "")
             .trim()
 
         manga.description = buildString {
-            append(manga.description)
+            append(manga.description) // Always start with the DTO description
 
-            val matches = titleRegex.findAll(manga.title)
+            val removedParts = titleRegex.findAll(titleWithPossibleVersion)
                 .map { it.value }
                 .toList()
 
-            if (matches.isNotEmpty()) {
-                matches.forEach { match ->
-                    append("\n\nThis entry is a `$match` version.")
+            if (removedParts.isNotEmpty()) {
+                removedParts.forEach { removedPart ->
+                    append("\n\nThis entry is a $removedPart version.")
                 }
             }
         }
-
         return manga
     }
     override fun getMangaUrl(manga: SManga) = baseUrl + manga.url.substringBeforeLast("#")

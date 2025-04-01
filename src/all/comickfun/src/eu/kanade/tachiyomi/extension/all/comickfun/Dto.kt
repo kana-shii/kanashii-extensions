@@ -63,12 +63,11 @@ class Manga(
                     append(comic.fancyScore)
                 }
                 if (showAlternativeTitles && comic.altTitles.isNotEmpty()) {
-                    if (this.isNotEmpty()) append("\n\n")
-                    append("Alternative Titles:\n")
+                    if (this.isNotEmpty()) append("\n\n----\n#### **Alternative Titles**\n")
                     append(
                         titles.distinctBy { it.title }.filter { it.title != entryTitle }
                             .mapNotNull { title ->
-                                title.title?.let { "• $it" }
+                                title.title?.let { "- $it" }
                             }.joinToString("\n"),
                     )
                 }
@@ -136,6 +135,7 @@ class Comic(
         val stars = score.toBigDecimal().div(BigDecimal(2))
             .setScale(0, RoundingMode.HALF_UP).toInt()
         buildString {
+            append("#### ")
             append("★".repeat(stars))
             if (stars < 5) append("☆".repeat(5 - stars))
             append(" $score")
