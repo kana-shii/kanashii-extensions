@@ -211,11 +211,10 @@ class Mangago : ParsedHttpSource(), ConfigurableSource {
                 }
                     ?.map { it.trim() }
                     ?.filter { it.isNotEmpty() }
-                    ?.map { "• $it" }
-                    ?.joinToString("\n")
+                    .joinToString("\n- ", prefix = "- ")
 
                 if (!names.isNullOrEmpty()) {
-                    append("\n\nAlternative Names:\n", names)
+                    append("\n\n----\n#### **Alternative Titles**\n", names)
                 }
                 val matches = titleRegex.findAll(originalTitle)
                     .filterNot { it.value == "(Yaoi)" }
@@ -223,7 +222,7 @@ class Mangago : ParsedHttpSource(), ConfigurableSource {
 
                 if (matches.isNotEmpty()) {
                     matches.forEach { match ->
-                        append("\n\nThis entry is a ${match.value} version.")
+                        append("\n\nThis entry is a `${match.value}` version.")
                     }
                 }
             }
