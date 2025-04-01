@@ -118,6 +118,9 @@ class MangaPlanet : ConfigurableSource, ParsedHttpSource() {
             }
             author = document.select("h3:has(.fa-pen-nib) a").joinToString { it.text() }
             description = buildString {
+                document.selectFirst("h3#manga_title ~ p:eq(2)")?.text()?.let {
+                    appendLine(it)
+                }
                 val altTitles = if (useJapaneseTitles) {
                     listOfNotNull(originalTitle, englishTitle)
                 } else {
@@ -126,9 +129,6 @@ class MangaPlanet : ConfigurableSource, ParsedHttpSource() {
                 if (altTitles.isNotEmpty()) {
                     append("\n\n----\n#### **Alternative Titles**\n")
                     append(altTitles.joinToString("\n- ", prefix = "- "))
-                }
-                document.selectFirst("h3#manga_title ~ p:eq(2)")?.text()?.let {
-                    appendLine(it)
                 }
             }
             genre = buildList {
