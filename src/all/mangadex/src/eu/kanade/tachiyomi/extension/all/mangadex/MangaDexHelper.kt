@@ -368,9 +368,9 @@ class MangaDexHelper(lang: String) {
                 .filter(String::isNotEmpty)
 
             if (altTitles.isNotEmpty()) {
-                val altTitlesDesc = altTitles
-                    .joinToString("----#### **${intl["alternative_ titles"]}**\n")  { "- $it" }
-                desc.add(altTitlesDesc.removeEntities())
+                val altTitlesDesc = "\n\n----\n#### " + intl["alternative_titles"] + "\n" +
+                    altTitles.joinToString("\n- ", prefix = "- ") { it.removeEntities() }
+                desc.add(altTitlesDesc)
             }
         }
 
