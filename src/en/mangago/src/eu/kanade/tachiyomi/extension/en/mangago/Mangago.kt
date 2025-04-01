@@ -211,7 +211,7 @@ class Mangago : ParsedHttpSource(), ConfigurableSource {
                 }
                     ?.map { it.trim() }
                     ?.filter { it.isNotEmpty() }
-                    .joinToString("\n- ", prefix = "- ")
+                    ?.joinToString("\n- ", prefix = "- ")
 
                 if (!names.isNullOrEmpty()) {
                     append("\n\n----\n#### **Alternative Titles**\n", names)
