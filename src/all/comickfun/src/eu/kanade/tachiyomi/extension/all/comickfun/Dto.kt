@@ -135,8 +135,7 @@ class Comic(
         val stars = score.toBigDecimal().div(BigDecimal(2))
             .setScale(0, RoundingMode.HALF_UP).toInt()
         buildString {
-            append("#### ")
-            append("★".repeat(stars))
+            append("#### ★".repeat(stars))
             if (stars < 5) append("☆".repeat(5 - stars))
             append(" $score")
         }
