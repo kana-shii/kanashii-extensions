@@ -124,9 +124,8 @@ class MangaPlanet : ConfigurableSource, ParsedHttpSource() {
                     alternativeTitles
                 }
                 if (altTitles.isNotEmpty()) {
-                    append("Alternative Titles:\n")
-                    altTitles.forEach { append("• $it\n") }
-                    append("\n")
+                    append("\n\n----\n#### **Alternative Titles**\n")
+                    append(altTitles.joinToString("\n- ", prefix = "- "))
                 }
                 document.selectFirst("h3#manga_title ~ p:eq(2)")?.text()?.let {
                     appendLine(it)

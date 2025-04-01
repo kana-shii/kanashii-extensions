@@ -54,107 +54,111 @@ class MangaParkComic(
 
             if (desc.isNullOrEmpty()) {
                 if (!names.isNullOrEmpty()) {
-                    append("\n\n----\n#### **Extra Info**\n${it.wholeText()}", names)
+                    append("\n\n----\n#### **Alternative Titles**\n", names)
                 }
             } else {
                 append(desc)
                 if (!names.isNullOrEmpty()) {
                     append("\n\n----\n#### **Alternative Titles**\n", names)
 
-            val matches = titleRegex.findAll(originalTitle)
-                .toList()
+                    val matches = titleRegex.findAll(originalTitle)
+                        .toList()
 
-            if (matches.isNotEmpty()) {
-                matches.forEach { match ->
-                    append("\n\nThis entry is a `${match.value}` version.")
-                }
-            }
-        }.trim()
-        genre = genres?.joinToString { it.replace("_", " ").toCamelCase() }
-        status = when (originalStatus) {
-            "ongoing" -> SManga.ONGOING
-            "completed" -> {
-                if (uploadStatus == "ongoing") {
-                    SManga.PUBLISHING_FINISHED
-                } else {
-                    SManga.COMPLETED
-                }
-            }
-            "hiatus" -> SManga.ON_HIATUS
-            "cancelled" -> SManga.CANCELLED
-            "pending" -> when (uploadStatus) {
-                "ongoing" -> SManga.ONGOING
-                "completed" -> SManga.COMPLETED
-                "hiatus" -> SManga.ON_HIATUS
-                "cancelled" -> SManga.CANCELLED
-                else -> SManga.UNKNOWN
-            }
-            else -> SManga.UNKNOWN
-        }
-        initialized = true
-    }
+                    if (matches.isNotEmpty()) {
+                        matches.forEach { match ->
+                            append("\n\nThis entry is a `${match.value}` version.")
+                        }
+                    }
+                }.trim()
+                genre = genres?.joinToString { it.replace("_", " ").toCamelCase() }
+                status = when (originalStatus) {
+                    "ongoing" -> SManga.ONGOING
+                    "completed" -> {
+                        if (uploadStatus == "ongoing") {
+                            SManga.PUBLISHING_FINISHED
+                        } else {
+                            SManga.COMPLETED
+                        }
+                    }
 
-    companion object {
-        private fun String.toCamelCase(): String {
-            val result = StringBuilder(length)
-            var capitalize = true
-            for (char in this) {
-                result.append(
-                    if (capitalize) {
-                        char.uppercase()
-                    } else {
-                        char.lowercase()
-                    },
-                )
-                capitalize = char.isWhitespace()
+                    "hiatus" -> SManga.ON_HIATUS
+                    "cancelled" -> SManga.CANCELLED
+                    "pending" -> when (uploadStatus) {
+                        "ongoing" -> SManga.ONGOING
+                        "completed" -> SManga.COMPLETED
+                        "hiatus" -> SManga.ON_HIATUS
+                        "cancelled" -> SManga.CANCELLED
+                        else -> SManga.UNKNOWN
+                    }
+
+                    else -> SManga.UNKNOWN
+                }
+                initialized = true
             }
-            return result.toString()
+
+            companion; object {
+            private fun String.toCamelCase(): String {
+                val result = StringBuilder(length)
+                var capitalize = true
+                for (char in this) {
+                    result.append(
+                        if (capitalize) {
+                            char.uppercase()
+                        } else {
+                            char.lowercase()
+                        },
+                    )
+                    capitalize = char.isWhitespace()
+                }
+                return result.toString()
+            }
         }
+        }
+
+        @Serializable
+        class ChapterList(
+            @SerialName("get_comicChapterList") val chapterList: List<Data<MangaParkChapter>>,
+        )
+
+        @Serializable
+        class MangaParkChapter(
+            private val id: String,
+            @SerialName("dname") private val displayName: String,
+            private val title: String? = null,
+            private val dateCreate: Long? = null,
+            private val dateModify: Long? = null,
+            private val urlPath: String,
+            private val srcTitle: String? = null,
+            private val userNode: Data<Name>? = null,
+            val dupChapters: List<Data<MangaParkChapter>> = emptyList(),
+        ) {
+            fun toSChapter() = SChapter.create().apply {
+                url = "$urlPath#$id"
+                name = buildString {
+                    append(displayName)
+                    title?.let { append(": ", it) }
+                }
+                date_upload = dateModify ?: dateCreate ?: 0L
+                scanlator = userNode?.data?.name ?: srcTitle ?: "Unknown"
+            }
+        }
+
+        @Serializable
+        class Name(val name: String)
+
+        @Serializable
+        class ChapterPages(
+            @SerialName("get_chapterNode") val chapterPages: Data<ImageFiles>,
+        )
+
+        @Serializable
+        class ImageFiles(
+            val imageFile: UrlList,
+        )
+
+        @Serializable
+        class UrlList(
+            val urlList: List<String>,
+        )
     }
 }
-
-@Serializable
-class ChapterList(
-    @SerialName("get_comicChapterList") val chapterList: List<Data<MangaParkChapter>>,
-)
-
-@Serializable
-class MangaParkChapter(
-    private val id: String,
-    @SerialName("dname") private val displayName: String,
-    private val title: String? = null,
-    private val dateCreate: Long? = null,
-    private val dateModify: Long? = null,
-    private val urlPath: String,
-    private val srcTitle: String? = null,
-    private val userNode: Data<Name>? = null,
-    val dupChapters: List<Data<MangaParkChapter>> = emptyList(),
-) {
-    fun toSChapter() = SChapter.create().apply {
-        url = "$urlPath#$id"
-        name = buildString {
-            append(displayName)
-            title?.let { append(": ", it) }
-        }
-        date_upload = dateModify ?: dateCreate ?: 0L
-        scanlator = userNode?.data?.name ?: srcTitle ?: "Unknown"
-    }
-}
-
-@Serializable
-class Name(val name: String)
-
-@Serializable
-class ChapterPages(
-    @SerialName("get_chapterNode") val chapterPages: Data<ImageFiles>,
-)
-
-@Serializable
-class ImageFiles(
-    val imageFile: UrlList,
-)
-
-@Serializable
-class UrlList(
-    val urlList: List<String>,
-)
