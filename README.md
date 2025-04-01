@@ -21,6 +21,8 @@ Some extensions from this repo provide better support for Komikku's feature show
 - [x] YMO
 - [x] Mangago
 - [X] MangaPlanet
+- [X] MangaDex
+- [X] Comick
 
 ### [TachiyomiSY](https://github.com/jobobby04/TachiyomiSY) got all the original Tachiyomi app and more:
 * TachiyomiSY will continue! It will basing the fork on a new Tachiyomi spiritual successor called Mihon.
