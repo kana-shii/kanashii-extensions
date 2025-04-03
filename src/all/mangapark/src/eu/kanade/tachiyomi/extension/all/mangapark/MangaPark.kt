@@ -188,7 +188,7 @@ class MangaPark(
 
             if (removedParts.isNotEmpty()) {
                 removedParts.forEach { removedPart ->
-                    append("\n\nThis entry is a $removedPart version.")
+                    append("\n\nThis entry is a `$removedPart` version.")
                 }
             }
         }
