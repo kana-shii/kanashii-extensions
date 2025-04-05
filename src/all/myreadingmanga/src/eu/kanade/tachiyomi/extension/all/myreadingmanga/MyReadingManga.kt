@@ -325,7 +325,7 @@ open class MyReadingManga(override val lang: String, private val siteLang: Strin
                         uri.appendQueryParameter(uriParam, "$uriValuePrefix:$reversedFilter")
                     }
                     else -> {
-                        uri.appendQueryParameter(uriParam, "$uriValuePrefix:${vals[state]}")
+                        uri.appendQueryParameter(uriParam, "<span class="math-inline">uriValuePrefix\:</span>{vals[state]}")
                     }
                 }
             }
