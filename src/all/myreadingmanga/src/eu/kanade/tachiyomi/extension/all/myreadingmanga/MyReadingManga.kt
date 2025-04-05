@@ -194,10 +194,17 @@ open class MyReadingManga(override val lang: String, private val siteLang: Strin
 
         val date = parseDate(document.select(".entry-time").text())
         val mangaUrl = document.baseUri()
-        val chfirstname = document.select(".chapter-class a[href*=$mangaUrl]").first()?.text()?.ifEmpty { "Ch. 1" }?.replaceFirstChar { it.titlecase() }
+
+        // Correctly get the first chapter name
+        val chFirstNameElement = document.select(".chapter-class .page-numbers.current").first()
+            ?: document.select(".chapter-class a[href*=$mangaUrl]").first()
+
+        val chfirstname = chFirstNameElement?.text()?.ifEmpty { "Ch. 1" }?.replaceFirstChar { it.titlecase() }
             ?: "Ch. 1"
+
         // create first chapter since its on main manga page
         chapters.add(createChapter("1", document.baseUri(), date, chfirstname))
+
         // see if there are multiple chapters or not
         val lastChapterNumber = document.select(chapterListSelector()).last()?.text()
         if (lastChapterNumber != null) {
@@ -213,7 +220,7 @@ open class MyReadingManga(override val lang: String, private val siteLang: Strin
     }
 
     private fun parseDate(date: String): Long {
-        return SimpleDateFormat("MMM dd, yyyy", Locale.US).parse(date)?.time ?: 0
+        return SimpleDateFormat("MMM dd,<ctrl3348>", Locale.US).parse(date)?.time ?: 0
     }
 
     private fun createChapter(pageNumber: String, mangaUrl: String, date: Long, chname: String): SChapter {
@@ -325,7 +332,7 @@ open class MyReadingManga(override val lang: String, private val siteLang: Strin
                         uri.appendQueryParameter(uriParam, "$uriValuePrefix:$reversedFilter")
                     }
                     else -> {
-                        uri.appendQueryParameter(uriParam, "$uriValuePrefix:${vals[state]}")
+                        uri.appendQueryParameter(uriParam, "<span class="math-inline">uriValuePrefix\:</span>{vals[state]}")
                     }
                 }
             }
@@ -340,11 +347,3 @@ open class MyReadingManga(override val lang: String, private val siteLang: Strin
     }
 
     companion object {
-        private const val USER_AGENT = "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
-    }
-
-    private fun randomString(length: Int): String {
-        val charPool = ('a'..'z') + ('A'..'Z')
-        return List(length) { charPool.random() }.joinToString("")
-    }
-}
