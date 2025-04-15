@@ -1,7 +1,6 @@
 package eu.kanade.tachiyomi.extension.all.mangapark
 
 import android.widget.Toast
-import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
 import androidx.preference.PreferenceScreen
 import androidx.preference.SwitchPreferenceCompat
