@@ -25,23 +25,8 @@ val SEARCH_QUERY = buildQuery {
         				originalStatus
                         uploadStatus
         				summary
-                        extraInfo
         				urlCoverOri
         				urlPath
-                        max_chapterNode {
-                            data {
-                                imageFile {
-                                    urlList
-                                }
-                            }
-                        }
-                        first_chapterNode {
-                            data {
-                                imageFile {
-                                    urlList
-                                }
-                            }
-                        }
         			}
         		}
         	}
@@ -67,23 +52,8 @@ val DETAILS_QUERY = buildQuery {
                     originalStatus
                     uploadStatus
                     summary
-                    extraInfo
                     urlCoverOri
                     urlPath
-                    max_chapterNode {
-                        data {
-                            imageFile {
-                                urlList
-                            }
-                        }
-                    }
-                    first_chapterNode {
-                        data {
-                            imageFile {
-                                urlList
-                            }
-                        }
-                    }
                 }
             }
         }

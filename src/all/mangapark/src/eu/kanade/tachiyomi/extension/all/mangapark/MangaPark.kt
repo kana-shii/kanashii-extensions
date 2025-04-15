@@ -18,21 +18,21 @@ import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.source.online.HttpSource
 import eu.kanade.tachiyomi.util.asJsoup
-import keiyoushi.utils.firstInstanceOrNull
 import keiyoushi.utils.getPreferences
-import keiyoushi.utils.parseAs
-import keiyoushi.utils.toJsonString
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
+import uy.kohesive.injekt.injectLazy
 import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 class MangaPark(
@@ -55,31 +55,13 @@ class MangaPark(
 
     private val apiUrl = "$baseUrl/apo/"
 
-    override val client = network.cloudflareClient.newBuilder().apply {
-        if (preference.getBoolean(ENABLE_NSFW, true)) {
-            addInterceptor(::siteSettingsInterceptor)
-            addNetworkInterceptor(CookieInterceptor(domain, "nsfw" to "2"))
-        }
-        rateLimitHost(apiUrl.toHttpUrl(), 1)
-        addInterceptor { chain ->
-            val request = chain.request()
-            val url = request.url
+    private val json: Json by injectLazy()
 
-            if (url.host == THUMBNAIL_LOOPBACK_HOST) {
-                val newUrl = url.newBuilder()
-                    .host(domain)
-                    .build()
-
-                val newRequest = request.newBuilder()
-                    .url(newUrl)
-                    .build()
-
-                chain.proceed(newRequest)
-            } else {
-                chain.proceed(request)
-            }
-        }
-    }.build()
+    override val client = network.cloudflareClient.newBuilder()
+        .addInterceptor(::siteSettingsInterceptor)
+        .addNetworkInterceptor(CookieInterceptor(domain, "nsfw" to "2"))
+        .rateLimitHost(apiUrl.toHttpUrl(), 1)
+        .build()
 
     override fun headersBuilder() = super.headersBuilder()
         .set("Referer", "$baseUrl/")
@@ -115,10 +97,8 @@ class MangaPark(
 
     override fun searchMangaParse(response: Response): MangasPage {
         val result = response.parseAs<SearchResponse>()
-        val pageAsCover = preference.getString(UNCENSORED_COVER_PREF, "first")!!
-        val shortenTitle = preference.getBoolean(SHORTEN_TITLE_PREF, false)
 
-        val entries = result.data.searchComics.items.map { it.data.toSManga(shortenTitle, pageAsCover) }
+        val entries = result.data.searchComics.items.map { it.data.toSManga() }
         val hasNextPage = entries.size == size
 
         return MangasPage(entries, hasNextPage)
@@ -182,15 +162,38 @@ class MangaPark(
 
         return POST(apiUrl, headers, payload)
     }
+    private var titleRegex: Regex =
+        Regex("\\([^()]*\\)|\\{[^{}]*\\}|\\[(?:(?!]).)*]|«[^»]*»|〘[^〙]*〙|「[^」]*」|『[^』]*』|≪[^≫]*≫|﹛[^﹜]*﹜|〖[^〖〗]*〗|𖤍.+?𖤍|《[^》]*》|⌜.+?⌝|⟨[^⟩]*⟩|【[^】]*】|([|].*)|([/].*)|([~].*)|-[^-]*-|‹[^›]*›", RegexOption.IGNORE_CASE)
 
     override fun mangaDetailsParse(response: Response): SManga {
         val result = response.parseAs<DetailsResponse>()
-        val pageAsCover = preference.getString(UNCENSORED_COVER_PREF, "first")!!
-        val shortenTitle = preference.getBoolean(SHORTEN_TITLE_PREF, false)
+        val manga = result.data.comic.data.toSManga()
 
-        return result.data.comic.data.toSManga(shortenTitle, pageAsCover)
+        val isRemoveTitleVersion = preference.getBoolean(REMOVE_TITLE_VERSION_PREF, true)
+        val customRemoveTitle = preference.getString(REMOVE_TITLE_CUSTOM_PREF, "") ?: ""
+
+        val titleWithPossibleVersion = manga.title
+
+        manga.title = manga.title
+            .replace(Regex(customRemoveTitle), "")
+            .replace(if (isRemoveTitleVersion) titleRegex else Regex(""), "")
+            .trim()
+
+        manga.description = buildString {
+            append(manga.description) // Always start with the DTO description
+
+            val removedParts = titleRegex.findAll(titleWithPossibleVersion)
+                .map { it.value }
+                .toList()
+
+            if (removedParts.isNotEmpty()) {
+                removedParts.forEach { removedPart ->
+                    append("\n\nThis entry is a `$removedPart` version.")
+                }
+            }
+        }
+        return manga
     }
-
     override fun getMangaUrl(manga: SManga) = baseUrl + manga.url.substringBeforeLast("#")
 
     override fun chapterListRequest(manga: SManga): Request {
@@ -243,7 +246,7 @@ class MangaPark(
             summary = "%s"
 
             setOnPreferenceChangeListener { _, _ ->
-                Toast.makeText(screen.context, "Restart the app to apply changes", Toast.LENGTH_LONG).show()
+                Toast.makeText(screen.context, "Restart Tachiyomi to apply changes", Toast.LENGTH_LONG).show()
                 true
             }
         }.also(screen::addPreference)
@@ -256,32 +259,28 @@ class MangaPark(
         }.also(screen::addPreference)
 
         SwitchPreferenceCompat(screen.context).apply {
-            key = ENABLE_NSFW
-            title = "Enable NSFW content"
-            summary = "Clear Cookies & Restart the app to apply changes."
+            key = REMOVE_TITLE_VERSION_PREF
+            title = "Remove version information from entry titles"
+            summary = "This removes version tags like '(Official)' from entry titles."
             setDefaultValue(true)
         }.also(screen::addPreference)
 
-        SwitchPreferenceCompat(screen.context).apply {
-            key = SHORTEN_TITLE_PREF
-            title = "Remove extra information from title"
-            summary = "Clear database to apply changes\n" +
-                "Note: doesn't not work for entries in library"
-            setDefaultValue(false)
-        }.also(screen::addPreference)
-
-        ListPreference(screen.context).apply {
-            key = UNCENSORED_COVER_PREF
-            title = "Attempt to use Uncensored Cover for Hentai"
-            summary = "Uses first or last chapter page as cover"
-            entries = arrayOf("Off", "First Chapter", "Last Chapter")
-            entryValues = arrayOf("off", "first", "last")
-            setDefaultValue("off")
+        EditTextPreference(screen.context).apply {
+            key = REMOVE_TITLE_CUSTOM_PREF
+            title = "Remove custom information from title"
+            summary = preference.getString(REMOVE_TITLE_CUSTOM_PREF, "") ?: ""
+            setDefaultValue("")
         }.also(screen::addPreference)
     }
 
+    private inline fun <reified T> Response.parseAs(): T =
+        use { body.string() }.let(json::decodeFromString)
+
+    private inline fun <reified T> List<*>.firstInstanceOrNull(): T? =
+        filterIsInstance<T>().firstOrNull()
+
     private inline fun <reified T : Any> T.toJsonRequestBody() =
-        toJsonString().toRequestBody(JSON_MEDIA_TYPE)
+        json.encodeToString(this).toRequestBody(JSON_MEDIA_TYPE)
 
     private val cookiesNotSet = AtomicBoolean(true)
     private val latch = CountDownLatch(1)
@@ -305,7 +304,7 @@ class MangaPark(
 
                 latch.countDown()
             } else {
-                latch.await(10, TimeUnit.SECONDS)
+                latch.await()
             }
         }
 
@@ -339,11 +338,8 @@ class MangaPark(
             "mpark.to",
         )
 
-        private const val ENABLE_NSFW = "pref_nsfw"
         private const val DUPLICATE_CHAPTER_PREF_KEY = "pref_dup_chapters"
-        private const val SHORTEN_TITLE_PREF = "pref_shorten_title"
-        private const val UNCENSORED_COVER_PREF = "pref_uncensored_cover"
+        private const val REMOVE_TITLE_VERSION_PREF = "REMOVE_TITLE_VERSION"
+        private const val REMOVE_TITLE_CUSTOM_PREF = "REMOVE_TITLE_CUSTOM"
     }
 }
-
-const val THUMBNAIL_LOOPBACK_HOST = "127.0.0.1"

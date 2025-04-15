@@ -38,63 +38,33 @@ class MangaParkComic(
     private val originalStatus: String? = null,
     private val uploadStatus: String? = null,
     private val summary: String? = null,
-    private val extraInfo: String? = null,
     @SerialName("urlCoverOri") private val cover: String? = null,
     private val urlPath: String,
-    @SerialName("max_chapterNode") private val latestChapter: Data<ImageFiles>? = null,
-    @SerialName("first_chapterNode") private val firstChapter: Data<ImageFiles>? = null,
 ) {
-    fun toSManga(shortenTitle: Boolean, pageAsCover: String) = SManga.create().apply {
+    fun toSManga() = SManga.create().apply {
         url = "$urlPath#$id"
-        title = if (shortenTitle) {
-            name.replace(shortenTitleRegex, "").trim()
-        } else {
-            name
-        }
-        thumbnail_url = run {
-            val coverUrl = cover?.let {
-                when {
-                    it.startsWith("http") -> it
-                    it.startsWith("/") -> "https://$THUMBNAIL_LOOPBACK_HOST$it"
-                    else -> null
-                }
-            }
-
-            if (pageAsCover != "off" && useLatestPageAsCover(genres)) {
-                if (pageAsCover == "first") {
-                    firstChapter?.data?.imageFile?.urlList?.firstOrNull() ?: coverUrl
-                } else {
-                    latestChapter?.data?.imageFile?.urlList?.firstOrNull() ?: coverUrl
-                }
-            } else {
-                coverUrl
-            }
-        }
+        title = name
+        thumbnail_url = cover
         author = authors?.joinToString()
         artist = artists?.joinToString()
         description = buildString {
-            if (shortenTitle) {
-                append(name)
-                append("\n\n")
+            val desc = summary?.let { Jsoup.parse(it).text() }
+            val names = altNames?.takeUnless { it.isEmpty() }
+                ?.joinToString("\n- ", prefix = "- ")
+
+            if (desc.isNullOrEmpty()) {
+                if (!names.isNullOrEmpty()) {
+                    append("\n\n----\n#### **Alternative Titles**\n", names)
+                }
+            } else {
+                append(desc)
+                if (!names.isNullOrEmpty()) {
+                    append("\n\n----\n#### **Alternative Titles**\n", names)
+                }
             }
-            summary?.also {
-                append(Jsoup.parse(it).wholeText().trim())
-                append("\n\n")
-            }
-            extraInfo?.takeUnless(String::isBlank)?.also {
-                append("Extra Info:\n")
-                append(Jsoup.parse(it).wholeText().trim())
-                append("\n\n")
-            }
-            altNames?.takeUnless { it.isEmpty() }
-                ?.joinToString(
-                    prefix = "Alternative Names:\n",
-                    separator = "\n",
-                ) { "• ${it.trim()}" }
-                ?.also(::append)
-        }.trim()
+        }
         genre = genres?.joinToString { it.replace("_", " ").toCamelCase() }
-        status = when (originalStatus ?: uploadStatus) {
+        status = when (originalStatus) {
             "ongoing" -> SManga.ONGOING
             "completed" -> {
                 if (uploadStatus == "ongoing") {
@@ -105,6 +75,13 @@ class MangaParkComic(
             }
             "hiatus" -> SManga.ON_HIATUS
             "cancelled" -> SManga.CANCELLED
+            "pending" -> when (uploadStatus) {
+                "ongoing" -> SManga.ONGOING
+                "completed" -> SManga.COMPLETED
+                "hiatus" -> SManga.ON_HIATUS
+                "cancelled" -> SManga.CANCELLED
+                else -> SManga.UNKNOWN
+            }
             else -> SManga.UNKNOWN
         }
         initialized = true
@@ -126,14 +103,6 @@ class MangaParkComic(
             }
             return result.toString()
         }
-
-        private fun useLatestPageAsCover(genres: List<String>?): Boolean {
-            return genres.orEmpty().let {
-                it.contains("hentai") && !it.contains("webtoon")
-            }
-        }
-
-        private val shortenTitleRegex = Regex("""(\[[^]]*]|[({][^)}]*[)}])""")
     }
 }
 
