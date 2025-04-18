@@ -1,7 +1,6 @@
 package eu.kanade.tachiyomi.extension.all.mangapark
 
 import android.widget.Toast
-import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
 import androidx.preference.PreferenceScreen
 import androidx.preference.SwitchPreferenceCompat
@@ -168,7 +167,6 @@ class MangaPark(
 
     override fun mangaDetailsParse(response: Response): SManga {
         val result = response.parseAs<DetailsResponse>()
-        val customRemoveTitle = preference.getString(REMOVE_TITLE_CUSTOM_PREF, "") ?: ""
         val pageAsCover = preference.getString(UNCENSORED_COVER_PREF, "off")!!
         val shortenTitle = preference.getBoolean(SHORTEN_TITLE_PREF, false)
 
@@ -246,11 +244,6 @@ class MangaPark(
             setDefaultValue(true)
         }.also(screen::addPreference)
 
-        EditTextPreference(screen.context).apply {
-            key = REMOVE_TITLE_CUSTOM_PREF
-            title = "Remove custom information from title"
-            summary = preference.getString(REMOVE_TITLE_CUSTOM_PREF, "") ?: ""
-            setDefaultValue("")
         SwitchPreferenceCompat(screen.context).apply {
             key = SHORTEN_TITLE_PREF
             title = "Remove extra information from title"
@@ -349,7 +342,6 @@ class MangaPark(
 
         private const val ENABLE_NSFW = "pref_nsfw"
         private const val DUPLICATE_CHAPTER_PREF_KEY = "pref_dup_chapters"
-        private const val REMOVE_TITLE_CUSTOM_PREF = "REMOVE_TITLE_CUSTOM"
         private const val SHORTEN_TITLE_PREF = "pref_shorten_title"
         private const val UNCENSORED_COVER_PREF = "pref_uncensored_cover"
     }
