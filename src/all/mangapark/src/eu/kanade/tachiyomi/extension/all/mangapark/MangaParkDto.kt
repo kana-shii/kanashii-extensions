@@ -103,7 +103,7 @@ class MangaParkComic(
                 ) { "- ${it.trim()}" }
                 ?.also(::append)
 
-            val matches = mutableListOf<MatchResult>()
+            val matches = mutableListOf<String>() // Store the matched strings directly
 
             if (shortenTitle) {
                 val tempTitle = if (shortenTitleRegex.containsMatchIn(name)) {
@@ -136,7 +136,7 @@ class MangaParkComic(
             if (matches.isNotEmpty()) {
                 append("\n\n----\n#### **Removed from title**\n")
                 matches.forEach { match ->
-                    append("- `$match.value`\n")
+                    append("- `$match`\n") // Correctly use the stored string
                 }
             }
         }.trim()
