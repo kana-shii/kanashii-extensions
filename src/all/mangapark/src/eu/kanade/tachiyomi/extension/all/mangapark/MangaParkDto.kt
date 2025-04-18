@@ -78,10 +78,6 @@ class MangaParkComic(
         author = authors?.joinToString()
         artist = artists?.joinToString()
         description = buildString {
-            if (shortenTitle) {
-                append(name)
-                append("\n\n")
-            }
             summary?.also {
                 append(Jsoup.parse(it).wholeText().trim())
                 append("\n\n")
@@ -97,6 +93,17 @@ class MangaParkComic(
                     separator = "\n",
                 ) { "- ${it.trim()}" }
                 ?.also(::append)
+            val titleWithPossibleVersion = name
+            val removedParts = shortenTitleRegex.findAll(titleWithPossibleVersion)
+                .map { it.value }
+                .toList()
+
+            if (removedParts.isNotEmpty() && shortenTitle) {
+                append("\n\n----\n#### **Removed from title**\n")
+                removedParts.forEach { removedPart ->
+                    append("- `$removedPart`\n")
+                }
+            }
         }.trim()
         genre = genres?.joinToString { it.replace("_", " ").toCamelCase() }
         status = when (originalStatus ?: uploadStatus) {
@@ -138,7 +145,7 @@ class MangaParkComic(
             }
         }
 
-        private val shortenTitleRegex = Regex("""^(\[[^]]+\])|^(\([^)]+\))|^(\{[^}]+\})|(\[[^]]+\])${'$'}|(\([^)]+\))${'$'}|(\{[^}]+\})${'$'}""")
+        private val shortenTitleRegex = Regex("\\([^()]*\\)|\\{[^{}]*\\}|\\[(?:(?!]).)*]|«[^»]*»|〘[^〙]*〙|「[^」]*」|『[^』]*』|≪[^≫]*≫|﹛[^﹜]*﹜|〖[^〖〗]*〗|𖤍.+?𖤍|《[^》]*》|⌜.+?⌝|⟨[^⟩]*⟩|【[^】]*】|([|].*)|([/].*)|([~].*)|-[^-]*-|‹[^›]*›", RegexOption.IGNORE_CASE)
     }
 }
 
