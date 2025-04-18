@@ -103,24 +103,40 @@ class MangaParkComic(
                 ) { "- ${it.trim()}" }
                 ?.also(::append)
 
-            val removedPartsShorten = shortenTitleRegex.findAll(name)
-                .map { it.value }
-                .toList()
-            val removedPartsCustom = if (customTitleRegex.pattern.isNotEmpty()) {
-                customTitleRegex.findAll(name)
-                    .map { it.value }
-                    .toList()
+            val matches = mutableListOf<MatchResult>()
+
+            if (shortenTitle) {
+                val tempTitle = if (shortenTitleRegex.containsMatchIn(name)) {
+                    var shortName = name
+                    while (shortenTitleRegex.containsMatchIn(shortName)) {
+                        val match = shortenTitleRegex.find(shortName)!!
+                        matches.add(match)
+                        shortName = shortName.replace(match.value, "").trim()
+                    }
+                    shortName
+                } else {
+                    name
+                }
+
+                if (customTitleRegex.pattern.isNotEmpty()) {
+                    val customMatch = customTitleRegex.find(tempTitle)
+                    if (customMatch != null) {
+                        matches.add(customMatch)
+                    }
+                }
             } else {
-                emptyList()
+                if (customTitleRegex.pattern.isNotEmpty()) {
+                    val customMatch = customTitleRegex.find(name)
+                    if (customMatch != null) {
+                        matches.add(customMatch)
+                    }
+                }
             }
-            val removedParts = mutableListOf<String>()
-            removedParts.addAll(removedPartsShorten)
-            removedParts.addAll(removedPartsCustom)
-            
-            if (removedParts.isNotEmpty() && shortenTitle) {
+
+            if (matches.isNotEmpty()) {
                 append("\n\n----\n#### **Removed from title**\n")
-                removedParts.forEach { removedPart ->
-                    append("- `$removedPart`\n")
+                matches.forEach { match ->
+                    append("- `$match.value`\n")
                 }
             }
         }.trim()
