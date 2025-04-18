@@ -44,17 +44,25 @@ class MangaParkComic(
     @SerialName("max_chapterNode") private val latestChapter: Data<ImageFiles>? = null,
     @SerialName("first_chapterNode") private val firstChapter: Data<ImageFiles>? = null,
 ) {
-    fun toSManga(shortenTitle: Boolean, pageAsCover: String) = SManga.create().apply {
+    fun toSManga(shortenTitle: Boolean, pageAsCover: String, customTitleRegex: Regex) = SManga.create().apply {
         url = "$urlPath#$id"
         title = if (shortenTitle) {
             var shortName = name
-            while (shortenTitleRegex.containsMatchIn(shortName)) {
-                shortName = shortName.replace(shortenTitleRegex, "").trim()
+            while (shortenTitleRegex().containsMatchIn(shortName)) { //Use the Regex from companion object.
+                shortName = shortName.replace(shortenTitleRegex(), "").trim() //Use the Regex from companion object.
+            }
+            if(customTitleRegex.pattern.isNotEmpty()){
+                shortName = shortName.replace(customTitleRegex,"").trim()
             }
 
             shortName
         } else {
-            name
+            if(customTitleRegex.pattern.isNotEmpty()){
+                name.replace(customTitleRegex,"").trim()
+            } else {
+                name
+            }
+
         }
         thumbnail_url = run {
             val coverUrl = cover?.let {

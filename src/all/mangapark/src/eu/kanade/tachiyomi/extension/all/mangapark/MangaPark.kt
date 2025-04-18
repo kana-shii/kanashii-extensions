@@ -1,6 +1,8 @@
 package eu.kanade.tachiyomi.extension.all.mangapark
 
 import android.widget.Toast
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.text
 import androidx.preference.ListPreference
 import androidx.preference.PreferenceScreen
 import androidx.preference.SwitchPreferenceCompat
@@ -32,6 +34,18 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicBoolean
+import androidx.preference.EditTextPreference // Import this
+import androidx.preference.size
+import androidx.privacysandbox.tools.core.generator.build
+import kotlin.io.use
+import kotlin.jvm.optionals.getOrNull
+import kotlin.text.mapNotNull
+import kotlin.text.orEmpty
+import kotlin.text.reversed
+import kotlin.text.set
+import kotlin.text.substringAfterLast
+import kotlin.text.substringBeforeLast
+
 
 class MangaPark(
     override val lang: String,
@@ -99,8 +113,11 @@ class MangaPark(
         val result = response.parseAs<SearchResponse>()
         val pageAsCover = preference.getString(UNCENSORED_COVER_PREF, "off")!!
         val shortenTitle = preference.getBoolean(SHORTEN_TITLE_PREF, false)
+        val customTitleRegex = customRemoveTitle() // Retrieve custom regex
 
-        val entries = result.data.searchComics.items.map { it.data.toSManga(shortenTitle, pageAsCover) }
+        val entries = result.data.searchComics.items.map {
+            it.data.toSManga(shortenTitle, pageAsCover, customTitleRegex) // Pass regex to toSManga
+        }
         val hasNextPage = entries.size == size
 
         return MangasPage(entries, hasNextPage)
@@ -169,8 +186,9 @@ class MangaPark(
         val result = response.parseAs<DetailsResponse>()
         val pageAsCover = preference.getString(UNCENSORED_COVER_PREF, "off")!!
         val shortenTitle = preference.getBoolean(SHORTEN_TITLE_PREF, false)
+        val customTitleRegex = customRemoveTitle() // Retrieve custom regex
 
-        return result.data.comic.data.toSManga(shortenTitle, pageAsCover)
+        return result.data.comic.data.toSManga(shortenTitle, pageAsCover, customTitleRegex) // Pass regex to toSManga
     }
 
     override fun getMangaUrl(manga: SManga) = baseUrl + manga.url.substringBeforeLast("#")
@@ -252,6 +270,13 @@ class MangaPark(
             setDefaultValue(false)
         }.also(screen::addPreference)
 
+        EditTextPreference(screen.context).apply { // Add this
+            key = REMOVE_TITLE_CUSTOM_PREF
+            title = "Custom title regex"
+            summary = "If not empty, replace title with custom regex."
+            setDefaultValue("")
+        }.also(screen::addPreference)
+
         ListPreference(screen.context).apply {
             key = UNCENSORED_COVER_PREF
             title = "Attempt to use Uncensored Cover for Hentai"
@@ -317,6 +342,11 @@ class MangaPark(
         throw UnsupportedOperationException()
     }
 
+    private fun customRemoveTitle(): Regex { // Add this function
+        val regex = preference.getString(REMOVE_TITLE_CUSTOM_PREF, "") ?: ""
+        return if (regex.isNotBlank()) Regex(regex) else Regex("")
+    }
+
     companion object {
         private const val size = 24
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaTypeOrNull()
@@ -343,6 +373,7 @@ class MangaPark(
         private const val ENABLE_NSFW = "pref_nsfw"
         private const val DUPLICATE_CHAPTER_PREF_KEY = "pref_dup_chapters"
         private const val SHORTEN_TITLE_PREF = "pref_shorten_title"
+        private const val REMOVE_TITLE_CUSTOM_PREF = "pref_custom_title_regex" // Add this
         private const val UNCENSORED_COVER_PREF = "pref_uncensored_cover"
     }
 }
