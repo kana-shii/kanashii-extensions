@@ -102,11 +102,21 @@ class MangaParkComic(
                     separator = "\n",
                 ) { "- ${it.trim()}" }
                 ?.also(::append)
-            val titleWithPossibleVersion = name
-            val removedParts = shortenTitleRegex.findAll(titleWithPossibleVersion)
+
+            val removedPartsShorten = shortenTitleRegex.findAll(name)
                 .map { it.value }
                 .toList()
-
+            val removedPartsCustom = if (customTitleRegex.pattern.isNotEmpty()) {
+                customTitleRegex.findAll(name)
+                    .map { it.value }
+                    .toList()
+            } else {
+                emptyList()
+            }
+            val removedParts = mutableListOf<String>()
+            removedParts.addAll(removedPartsShorten)
+            removedParts.addAll(removedPartsCustom)
+            
             if (removedParts.isNotEmpty() && shortenTitle) {
                 append("\n\n----\n#### **Removed from title**\n")
                 removedParts.forEach { removedPart ->
