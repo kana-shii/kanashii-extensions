@@ -389,8 +389,9 @@ open class BatoTo(
                 .toList()
 
             if (matches.isNotEmpty()) {
+                append("\n\n----\n#### **Removed from title**\n")
                 matches.forEach { match ->
-                    append("\n\nThis entry is a `${match.value}` version.")
+                    append("- `$match.value`\n")
                 }
             }
         }.trim()
