@@ -1,8 +1,7 @@
 package eu.kanade.tachiyomi.extension.all.mangapark
 
 import android.widget.Toast
-import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.text
+import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
 import androidx.preference.PreferenceScreen
 import androidx.preference.SwitchPreferenceCompat
@@ -34,18 +33,6 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicBoolean
-import androidx.preference.EditTextPreference // Import this
-import androidx.preference.size
-import androidx.privacysandbox.tools.core.generator.build
-import kotlin.io.use
-import kotlin.jvm.optionals.getOrNull
-import kotlin.text.mapNotNull
-import kotlin.text.orEmpty
-import kotlin.text.reversed
-import kotlin.text.set
-import kotlin.text.substringAfterLast
-import kotlin.text.substringBeforeLast
-
 
 class MangaPark(
     override val lang: String,

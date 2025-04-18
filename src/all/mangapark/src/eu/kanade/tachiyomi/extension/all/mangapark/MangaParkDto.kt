@@ -5,6 +5,8 @@ import eu.kanade.tachiyomi.source.model.SManga
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.jsoup.Jsoup
+import kotlin.text.replace
+import kotlin.text.trim
 
 typealias SearchResponse = Data<SearchComics>
 typealias DetailsResponse = Data<ComicNode>
@@ -48,21 +50,20 @@ class MangaParkComic(
         url = "$urlPath#$id"
         title = if (shortenTitle) {
             var shortName = name
-            while (shortenTitleRegex().containsMatchIn(shortName)) { //Use the Regex from companion object.
-                shortName = shortName.replace(shortenTitleRegex(), "").trim() //Use the Regex from companion object.
+            while (shortenTitleRegex().containsMatchIn(shortName)) { // Use the Regex from companion object.
+                shortName = shortName.replace(shortenTitleRegex(), "").trim() // Use the Regex from companion object.
             }
-            if(customTitleRegex.pattern.isNotEmpty()){
-                shortName = shortName.replace(customTitleRegex,"").trim()
+            if (customTitleRegex.pattern.isNotEmpty()) {
+                shortName = shortName.replace(customTitleRegex, "").trim()
             }
 
             shortName
         } else {
-            if(customTitleRegex.pattern.isNotEmpty()){
-                name.replace(customTitleRegex,"").trim()
+            if (customTitleRegex.pattern.isNotEmpty()) {
+                name.replace(customTitleRegex, "").trim()
             } else {
                 name
             }
-
         }
         thumbnail_url = run {
             val coverUrl = cover?.let {
