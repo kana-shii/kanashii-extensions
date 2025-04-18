@@ -110,7 +110,7 @@ class MangaParkComic(
                     var shortName = name
                     while (shortenTitleRegex.containsMatchIn(shortName)) {
                         val match = shortenTitleRegex.find(shortName)!!
-                        matches.add(match)
+                        matches.add(match.value) // Store match.value
                         shortName = shortName.replace(match.value, "").trim()
                     }
                     shortName
@@ -121,14 +121,14 @@ class MangaParkComic(
                 if (customTitleRegex.pattern.isNotEmpty()) {
                     val customMatch = customTitleRegex.find(tempTitle)
                     if (customMatch != null) {
-                        matches.add(customMatch)
+                        matches.add(customMatch.value) // Store customMatch.value
                     }
                 }
             } else {
                 if (customTitleRegex.pattern.isNotEmpty()) {
                     val customMatch = customTitleRegex.find(name)
                     if (customMatch != null) {
-                        matches.add(customMatch)
+                        matches.add(customMatch.value) // Store customMatch.value
                     }
                 }
             }
