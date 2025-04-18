@@ -50,8 +50,8 @@ class MangaParkComic(
         url = "$urlPath#$id"
         title = if (shortenTitle) {
             var shortName = name
-            while (shortenTitleRegex().containsMatchIn(shortName)) { // Use the Regex from companion object.
-                shortName = shortName.replace(shortenTitleRegex(), "").trim() // Use the Regex from companion object.
+            while (shortenTitleRegex.containsMatchIn(shortName)) { // Use the Regex from companion object.
+                shortName = shortName.replace(shortenTitleRegex, "").trim() // Use the Regex from companion object.
             }
             if (customTitleRegex.pattern.isNotEmpty()) {
                 shortName = shortName.replace(customTitleRegex, "").trim()
