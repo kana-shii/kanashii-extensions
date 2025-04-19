@@ -385,13 +385,32 @@ open class BatoTo(
                 append(it.text().split('/').joinToString("\n- ", prefix = "- "))
             }
 
-            val matches = titleRegex.findAll(originalTitle)
-                .toList()
+            val matches = mutableListOf<String>() // Store the matched strings directly
+
+            val tempTitle = if (isRemoveTitleVersion()) {
+                var shortName = originalTitle
+                while (titleRegex.containsMatchIn(shortName)) {
+                    val match = titleRegex.find(shortName)!!
+                    matches.add(match.value) // Store match.value
+                    shortName = shortName.replace(match.value, "").trim()
+                }
+                shortName
+            } else {
+                originalTitle
+            }
+
+            if (customRemoveTitle().isNotEmpty()) {
+                val customRegex = Regex(customRemoveTitle(), RegexOption.IGNORE_CASE)
+                val customMatch = customRegex.find(tempTitle)
+                if (customMatch != null) {
+                    matches.add(customMatch.value) // Store customMatch.value
+                }
+            }
 
             if (matches.isNotEmpty()) {
                 append("\n\n----\n#### **Removed from title**\n")
                 matches.forEach { match ->
-                    append("- `$match.value`\n")
+                    append("- `$match`\n") // Correctly use the stored string
                 }
             }
         }.trim()
