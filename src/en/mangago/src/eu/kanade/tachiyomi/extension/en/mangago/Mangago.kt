@@ -238,7 +238,7 @@ class Mangago : ParsedHttpSource(), ConfigurableSource {
                     }
                 }
 
-                matches.removeAll { it == "(Yaoi)", ignoreCase = true}
+                matches.removeAll { it.trim().equals("(Yaoi)", ignoreCase = true) }
 
                 if (matches.isNotEmpty()) {
                     append("\n\n----\n#### **Removed from title**\n")
