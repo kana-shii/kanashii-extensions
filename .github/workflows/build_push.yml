@@ -145,7 +145,7 @@ jobs:
       - name: Checkout repo branch
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          repository: kana-shii/extensions
+          repository: kana-shii/manga-repo
           token: ${{ secrets.BOT_PAT }}
           ref: repo
           path: repo
@@ -165,4 +165,4 @@ jobs:
 
       - name: Purge cached index on jsDelivr
         run: |
-          curl https://purge.jsdelivr.net/gh/kana-shii/extensions@repo/index.min.json
+          curl https://purge.jsdelivr.net/gh/kana-shii/manga-repo@repo/index.min.json
