@@ -2,10 +2,6 @@ package eu.kanade.tachiyomi.extension.ko.newtoki
 
 import android.content.SharedPreferences
 import android.util.Log
-import eu.kanade.tachiyomi.lib.randomua.addRandomUAPreferenceToScreen
-import eu.kanade.tachiyomi.lib.randomua.getPrefCustomUA
-import eu.kanade.tachiyomi.lib.randomua.getPrefUAType
-import eu.kanade.tachiyomi.lib.randomua.setRandomUserAgent
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.network.asObservableSuccess
 import eu.kanade.tachiyomi.network.interceptor.rateLimit
@@ -48,10 +44,6 @@ abstract class NewToki(
     private fun buildClient(withRateLimit: Boolean) =
         network.cloudflareClient.newBuilder()
             .apply { if (withRateLimit) rateLimit(1, preferences.rateLimitPeriod.toLong()) }
-            .setRandomUserAgent(
-                preferences.getPrefUAType(),
-                preferences.getPrefCustomUA(),
-            )
             .addInterceptor(DomainInterceptor) // not rate-limited
             .connectTimeout(10, TimeUnit.SECONDS) // fail fast
             .build()
@@ -273,7 +265,6 @@ abstract class NewToki(
 
     override fun setupPreferenceScreen(screen: androidx.preference.PreferenceScreen) {
         getPreferencesInternal(screen.context).map(screen::addPreference)
-        addRandomUAPreferenceToScreen(screen)
     }
 
     protected fun getUrlPath(orig: String): String {

@@ -1,7 +1,7 @@
 ext {
     extName = 'NewToki / ManaToki'
     extClass = '.TokiFactory'
-    extVersionCode = 34
+    extVersionCode = 33
     isNsfw = true
 }
 
@@ -41,8 +41,4 @@ tasks.whenTaskAdded { task ->
     if (task.name == "assembleDebug" || task.name == "assembleRelease") {
         task.finalizedBy(restoreBackup)
     }
-}
-
-dependencies {
-    implementation(project(':lib:randomua'))
 }
