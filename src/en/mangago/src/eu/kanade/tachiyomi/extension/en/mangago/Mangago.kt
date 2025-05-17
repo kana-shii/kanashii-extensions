@@ -250,7 +250,13 @@ class Mangago : ParsedHttpSource(), ConfigurableSource {
         }
     }
 
-    override fun chapterListSelector() = "table#chapter_table > tbody > tr, table.uk-table > tbody > tr"
+    override fun chapterListSelector(): String {
+        return if (preferences.getBoolean(SHOW_RAW_CHAPTERS_PREF, false)) {
+            "table#chapter_table > tbody > tr, table.uk-table > tbody > tr, table#raws_table > tbody > tr" // Include raws_table
+        } else {
+            "table#chapter_table > tbody > tr, table.uk-table > tbody > tr"
+        }
+    }
 
     override fun chapterFromElement(element: Element) = SChapter.create().apply {
         val link = element.select("a.chico")
@@ -653,10 +659,17 @@ class Mangago : ParsedHttpSource(), ConfigurableSource {
             summary = preferences.getString("${REMOVE_TITLE_CUSTOM_PREF}_$lang", "") ?: ""
             setDefaultValue("")
         }.let(screen::addPreference)
+        SwitchPreferenceCompat(screen.context).apply {
+            key = SHOW_RAW_CHAPTERS_PREF
+            title = "Show raw chapters"
+            summary = "Include raw (untranslated) chapters in the chapter list."
+            setDefaultValue(false)
+        }.let(screen::addPreference)
         addRandomUAPreferenceToScreen(screen)
     }
     companion object {
         private const val REMOVE_TITLE_VERSION_PREF = "REMOVE_TITLE_VERSION"
         private const val REMOVE_TITLE_CUSTOM_PREF = "TITLE_REGEX_PATTERN"
+        private const val SHOW_RAW_CHAPTERS_PREF = "SHOW_RAW_CHAPTERS"
     }
 }
