@@ -254,7 +254,7 @@ class Mangago : ParsedHttpSource(), ConfigurableSource {
         return if (preferences.getBoolean(SHOW_RAW_CHAPTERS_PREF, false)) {
             "div#chapter_tab + div > table#chapter_table > tbody > tr, div#raws_tab + table#raws_table > tbody > tr"
         } else {
-            "div#chapter_tab + div > table#chapter_table > tbody > tr"
+            "table#chapter_table > tbody > tr:not(:has(a[href*='/raw/'])), table.uk-table > tbody > tr:not(:has(a[href*='/raw/']))"
         }
     }
 
