@@ -252,9 +252,9 @@ class Mangago : ParsedHttpSource(), ConfigurableSource {
 
     override fun chapterListSelector(): String {
         return if (preferences.getBoolean(SHOW_RAW_CHAPTERS_PREF, false)) {
-            "table#chapter_table > tbody > tr, table.uk-table > tbody > tr, table#raws_table > tbody > tr"
+            "div#chapter_tab + div > table#chapter_table > tbody > tr, div#raws_tab + table#raws_table > tbody > tr"
         } else {
-            "table#chapter_table > tbody > tr, table.uk-table > tbody > tr"
+            "div#chapter_tab + div > table#chapter_table > tbody > tr"
         }
     }
 
